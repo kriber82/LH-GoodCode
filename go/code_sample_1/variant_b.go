@@ -24,6 +24,7 @@ func SendGreetingsB(employeesCsvFilename string, now time.Time, smtpHost string,
 	headerHasBeenSkipped := false
 	for {
 		employeeCsvRecord, err := employeesCsvReader.Read()
+		//handle end of file
 		if err == io.EOF {
 			return nil
 		}
@@ -34,12 +35,20 @@ func SendGreetingsB(employeesCsvFilename string, now time.Time, smtpHost string,
 			headerHasBeenSkipped = true
 			continue
 		}
-		// Lastname, Firstname, dateOfBirth, email
-		employee, err := NewEmployee(employeeCsvRecord[0], employeeCsvRecord[1], employeeCsvRecord[2], employeeCsvRecord[3])
+
+		//parse csv record
+		lastname := employeeCsvRecord[0]
+		firstname := employeeCsvRecord[1]
+		dateOfBirth := employeeCsvRecord[2]
+		email := employeeCsvRecord[3]
+		employee, err := NewEmployee(lastname, firstname, dateOfBirth, email)
 		if err != nil {
 			return err
 		}
+
+		//check if we need to send a birthday message
 		if employee.IsBirthday(now) {
+			//actually send birthday email
 			greetingMessageBody := strings.Replace("Happy Birthday, dear %NAME%", "%NAME%", employee.Firstname, -1)
 			err = sendMessageB(smtpHost, smtpPort, "sender@here.com", "Happy Birthday!", greetingMessageBody, employee.Email)
 			if err != nil {
