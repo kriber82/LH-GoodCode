@@ -29,14 +29,9 @@ func SendGreetingsA(employeesCsvFilename string, now time.Time, smtpHost string,
 		return err
 	}
 
-	for _, employee := range employees {
-		if employee.IsBirthday(now) {
-			greetingMessageBody := strings.Replace("Happy Birthday, dear %NAME%", "%NAME%", employee.Firstname, -1)
-			err = sendMessageA(smtpHost, smtpPort, "sender@here.com", "Happy Birthday!", greetingMessageBody, employee.Email)
-			if err != nil {
-				return err
-			}
-		}
+	err = sendBirthdayGreetings(employees, now, smtpHost, smtpPort)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -66,8 +61,11 @@ func readEmployeeCsvRecords(employeesCsvFile *os.File) ([][]string, error) {
 func parseEmployees(employeeCsvRecords [][]string) ([]*Employee, error) {
 	var employees []*Employee
 	for _, employeeCsvRecord := range employeeCsvRecords {
-		// Lastname, Firstname, dateOfBirth, email
-		employee, err := NewEmployee(employeeCsvRecord[0], employeeCsvRecord[1], employeeCsvRecord[2], employeeCsvRecord[3])
+		lastname := employeeCsvRecord[0]
+		firstname := employeeCsvRecord[1]
+		dateOfBirth := employeeCsvRecord[2]
+		email := employeeCsvRecord[3]
+		employee, err := NewEmployee(lastname, firstname, dateOfBirth, email)
 		if err != nil {
 			return nil, err
 		}
@@ -80,4 +78,26 @@ func sendMessageA(smtpHost string, smtpPort int, sender, subject, body, recipien
 	smtpAddr := net.JoinHostPort(smtpHost, strconv.Itoa(smtpPort))
 	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n"+"%s\r\n", recipient, subject, body))
 	return smtp.SendMail(smtpAddr, nil, sender, []string{recipient}, msg)
+}
+
+func sendBirthdayGreetings(employees []*Employee, now time.Time, smtpHost string, smtpPort int) error {
+	for _, employee := range employees {
+		if employee.IsBirthday(now) {
+			err := sendBirthdayGreeting(employee, smtpHost, smtpPort)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func sendBirthdayGreeting(employee *Employee, smtpHost string, smtpPort int) error {
+	greetingMessageBody := strings.Replace("Happy Birthday, dear %NAME%", "%NAME%", employee.Firstname, -1)
+	err := sendMessageA(smtpHost, smtpPort, "sender@here.com", "Happy Birthday!", greetingMessageBody, employee.Email)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
